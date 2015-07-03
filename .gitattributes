@@ -1,0 +1,31 @@
+* text=auto
+
+# These files are text and should be normalized (Convert crlf => lf)
+*.bat text
+*.c text
+*.classpath text
+*.css text
+*.drl text
+*.gitignore text
+*.h text
+*.html text
+*.java text
+*.manifest text
+*.project text
+*.properties text
+*.txt text
+*.xml text
+
+# These files are binary and should be left untouched
+*.a binary
+*.bmp binary
+*.class binary
+*.exe binary
+*.gif binary
+*.ico binary
+*.jar binary
+*.jfpr binary
+*.jfrm binary
+*.o binary
+*.png binary
+*.zip binary

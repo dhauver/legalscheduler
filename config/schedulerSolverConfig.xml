@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<solver>
+  <!--<environmentMode>FAST_ASSERT</environmentMode>-->
+  <solutionClass>org.legalscheduler.domain.Schedule</solutionClass>
+  <entityClass>org.legalscheduler.domain.ShiftAssignment</entityClass>
+
+  <scoreDirectorFactory>
+    <scoreDefinitionType>HARD_SOFT</scoreDefinitionType>
+    <scoreDrl>schedulerScoreRules.drl</scoreDrl>
+  </scoreDirectorFactory>
+
+  <termination>
+    <secondsSpentLimit>15</secondsSpentLimit>
+    <bestScoreLimit>-0hard/-0soft</bestScoreLimit>
+  </termination>
+  <!-- 
+  <constructionHeuristic>
+    <constructionHeuristicType>FIRST_FIT_DECREASING</constructionHeuristicType>
+  </constructionHeuristic>
+  -->
+  <customPhase>
+    <customPhaseCommandClass>org.legalscheduler.solver.ScheduleSolutionInitializer</customPhaseCommandClass>
+  </customPhase>
+ <localSearch>
+    <swapMoveSelector>
+      <cacheType>PHASE</cacheType>
+      <selectionOrder>SHUFFLED</selectionOrder>
+      <filterClass>org.legalscheduler.solver.DayAndShiftTypeSwapMoveFilter</filterClass>
+    </swapMoveSelector>
+    <acceptor>
+      <entityTabuSize>7</entityTabuSize>
+    </acceptor>
+    <forager>
+      <acceptedCountLimit>1000</acceptedCountLimit>
+    </forager>
+  </localSearch>
+</solver>

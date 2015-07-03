@@ -1,0 +1,93 @@
+/*
+ * Copyright 2010 JBoss Inc
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.optaplanner.examples.curriculumcourse.solver;
+    dialect "java"
+
+import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScoreHolder;
+
+import org.legalscheduler.domain.Employee;
+import org.legalscheduler.domain.Schedule;
+import org.legalscheduler.domain.Shift;
+import org.legalscheduler.domain.ShiftAssignment;
+import org.legalscheduler.domain.ShiftDate;
+import org.legalscheduler.domain.AttorneyType;
+
+global HardSoftScoreHolder scoreHolder;
+
+// ############################################################################
+// Hard constraints
+// ############################################################################
+
+rule "Employee is assigned to two shifts on the same date"
+    when
+        ShiftAssignment( employee != null, $employee : employee, $shiftDate : shift.shiftDate, $shiftId : shift.shiftId )
+        ShiftAssignment( employee == $employee, shift.shiftDate == $shiftDate, shift.shiftId > $shiftId )
+    then
+        scoreHolder.addHardConstraintMatch(kcontext, -100);
+end
+
+rule "Employee is assigned to a shift on a date which they are unavailable"
+    when
+        ShiftAssignment( $shiftDate : shift.shiftDate, employee != null, employee.availableDates.contains($shiftDate) == false, employee.availableIfNeededDates.contains($shiftDate) == false )
+    then
+        scoreHolder.addHardConstraintMatch(kcontext, -75);
+end
+
+rule "New Attorney is assigned to a shift that does not have a supervising attorney"
+    when
+        ShiftAssignment($shiftDate : shift.shiftDate, employee != null, employee.attorneyType == AttorneyType.New)
+        not ShiftAssignment(shift.shiftDate == $shiftDate, shift.backup == false, employee != null, employee.attorneyType == AttorneyType.Supervisor)
+    then
+        scoreHolder.addHardConstraintMatch(kcontext, -10);
+end
+
+rule "Employee is assigned to consecutive shifts"
+    when
+        ShiftAssignment( employee != null, $employee : employee, $shiftNumber : shift.shiftDate.shiftNumber)
+        ShiftAssignment( employee == $employee, shift.shiftDate.shiftNumber == ($shiftNumber-1))
+    then
+        scoreHolder.addHardConstraintMatch(kcontext, -5);
+end
+
+// ############################################################################
+// Soft constraints
+// ############################################################################
+
+
+// Consective shifts in the same week will be detected by the previous
+// rule, so this looks for shifts with at least another in between
+rule "Employee is assigned to two shifts in the same week"
+    when
+        ShiftAssignment( employee != null, $employee : employee, $weekNumber : shift.shiftDate.weekNumber, $shiftNumber : shift.shiftDate.shiftNumber)
+        ShiftAssignment( employee == $employee, shift.shiftDate.shiftNumber < ($shiftNumber - 1), shift.shiftDate.weekNumber == $weekNumber)
+    then
+        scoreHolder.addSoftConstraintMatch(kcontext, -30);
+end
+
+rule "Employee is working a primary shift on a less preferred date"
+    when
+        ShiftAssignment( $shiftDate : shift.shiftDate, shift.backup == false, employee != null, employee.availableIfNeededDates.contains($shiftDate) == true )
+    then
+        scoreHolder.addSoftConstraintMatch(kcontext, -10);
+end
+
+rule "Employee is working a backup shift on a less preferred date"
+    when
+        ShiftAssignment( $shiftDate : shift.shiftDate, shift.backup == true, employee != null, employee.availableIfNeededDates.contains($shiftDate) == true )
+    then
+        scoreHolder.addSoftConstraintMatch(kcontext, -5);
+end

@@ -1,0 +1,58 @@
+<project name="attorneyScheduler" default="dist">
+
+	<property name="build.dir" location="build"/>
+	<property name="expanded.dir" location="${build.dir}/Attorney Scheduler"/>
+	<property name="versionNumber" value="0.9.1.0"/>
+	<property name="version" value="${versionNumber} alpha"/>
+
+	<property name="launch4j.dir" location="launch4j" />
+
+	<taskdef name="launch4j"
+	    classname="net.sf.launch4j.ant.Launch4jTask"
+	    classpath="${launch4j.dir}/launch4j.jar:${launch4j.dir}/lib/xstream.jar" />
+
+	<target name="clean">
+		<delete dir="${build.dir}"/>
+	</target>
+
+	<target name="build" depends="clean">
+		<mkdir dir="${build.dir}" />
+		<mkdir dir="${expanded.dir}" />
+		<mkdir dir="${expanded.dir}/lib" />
+		<mkdir dir="${expanded.dir}/config" />
+		<copy todir="${expanded.dir}/lib">
+			<fileset dir="lib" includes="*.jar" />
+		</copy>
+		<copy todir="${expanded.dir}/config">
+			<fileset dir="config" includes="scheduler*"/>
+		</copy>
+		<tstamp prefix="buildTimestamp"/>
+		<manifestclasspath property="jar.classpath"
+	                           jarfile="${expanded.dir}/attorneyScheduler.jar">
+			<classpath>
+				<fileset dir="${expanded.dir}/lib" includes="*.jar"/>
+				<pathelement location="${expanded.dir}/config"/>
+			</classpath>
+		</manifestclasspath>
+		<jar destfile="${expanded.dir}/attorneyScheduler.jar" >
+			<manifest>
+				<attribute name="Main-Class" value="org.legalscheduler.SchedulerApplication"/>
+				<attribute name="Built-Date" value="${buildTimestamp.TODAY} ${buildTimestamp.TSTAMP}"/>
+				<attribute name="Class-Path" value="${jar.classpath}"/>
+			</manifest>
+			<fileset dir="bin" includes="**/*"/>
+		</jar>
+	</target>
+
+	<target name="dist" depends="build">
+		<launch4j configFile="config/launch4jconfig.xml" 
+			outfile="${expanded.dir}/AttorneyScheduler.exe"
+			fileVersion="${versionNumber}"
+			txtFileVersion="${version}"
+			productVersion="${versionNumber}"
+		    txtProductVersion="${version}"/>
+		<zip destfile="${build.dir}/attorneyScheduler.zip">
+			<zipfileset dir="${expanded.dir}" prefix="Attorney Scheduler ${version}"/> 
+		</zip>
+	</target>
+</project>

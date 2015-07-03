@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>true</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>attorneyScheduler.jar</jar>
+  <errTitle></errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://github.com/dhauver/legalscheduler</downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>true</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon></icon>
+  <jre>
+    <path></path>
+    <bundledJre64Bit>false</bundledJre64Bit>
+    <bundledJreAsFallback>false</bundledJreAsFallback>
+    <minVersion>1.7.0</minVersion>
+    <maxVersion></maxVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <runtimeBits>64/32</runtimeBits>
+    <opt>-Dsun.java2d.d3d=false</opt>
+  </jre>
+  <versionInfo>
+    <fileDescription>Utility application to help schedule attorneys for courthouse shifts.</fileDescription>
+    <copyright>David Hauver (https://github.com/dhauver/)</copyright>
+    <productName>Attorney Scheduler</productName>
+    <companyName></companyName>
+    <internalName>AttorneyScheduler</internalName>
+    <originalFilename>AttorneyScheduler.exe</originalFilename>
+  </versionInfo>
+</launch4jConfig>
