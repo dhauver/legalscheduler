@@ -34,10 +34,12 @@ public class ScheduleLoader {
         }
         try {
             String[] headerRow = csvReader.readNext();
-            Map<Integer, ShiftDate> columnDates = initShiftDates(schedule, headerRow);
+            String[] primaryShiftsRow = csvReader.readNext();
+            String[] backupShiftsRow = csvReader.readNext();
+            Map<Integer, ShiftDate> columnDates = initShiftDates(schedule, headerRow, primaryShiftsRow, backupShiftsRow);
             initShifts(schedule);
             schedule.setEmployees(new ArrayList<Employee>());
-            int rowNumber = 2;
+            int rowNumber = 4;
             String[] employeeRow = csvReader.readNext();
             while (employeeRow != null) {
                 addEmployee(schedule, employeeRow, rowNumber, columnDates);
@@ -51,58 +53,83 @@ public class ScheduleLoader {
         return schedule;
     }
     
-    private Map<Integer, ShiftDate> initShiftDates(Schedule schedule, String[] headerRow) {
+    private Map<Integer, ShiftDate> initShiftDates(Schedule schedule, String[] headerRow, String[] primaryShiftsRow, String[] backupShiftsRow) {
         Map<Integer, ShiftDate> columnDates = new HashMap<Integer, ShiftDate>();
         List<ShiftDate> shiftDates = new ArrayList<ShiftDate>();
         int shiftNumber = 0;
         int weekNumber = -1;
         int previousWeek = -1;
         int previousYear = -1;
+        List<Shift> allShifts = new ArrayList<Shift>();
+        int shiftIndex = 0;
         for (int i = 4; i < headerRow.length; ++i) {
             String value = headerRow[i];
+            Date date = null;
+            int numPrimaryShifts = 0;
+            int numBackupShifts = 0;
+            // The right-most column might also be used to tally up the total number of backup
+            // and primary shifts, in order to cross-check with the target numbers for each
+            // employee
+            if (isTotal(value)) {
+                break;
+            }
+            // This ignores any trailing empty columns that might exist to the far right.
+            if (StringUtils.stripToNull(value) == null && i > 4) {
+                break;
+            }
             try {
-                Date date = SchedulerApplication.INPUT_DATE_FORMAT.parse(value);
-                ShiftDate shiftDate = new ShiftDate();
-                shiftDate.setDate(date);
-                shiftDate.setShiftNumber(shiftNumber);
-                ++ shiftNumber;
-                
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(date);
-                int curWeek = cal.get(Calendar.WEEK_OF_YEAR);
-                int curYear = cal.get(Calendar.YEAR);
-                if (curYear == previousYear && curWeek == previousWeek) {
-                    shiftDate.setWeekNumber(weekNumber);
-                } else {
-                    ++ weekNumber;
-                    shiftDate.setWeekNumber(weekNumber);
-                    previousWeek = curWeek;
-                    previousYear = curYear;
-                }
-                columnDates.put(i, shiftDate);
-                shiftDates.add(shiftDate);
+                date = SchedulerApplication.INPUT_DATE_FORMAT.parse(value);
             } catch (ParseException e) {
                 throw new RuntimeException("The header value in column " + (i + 1) + " is not a valid date: " + value + ". Values must be formatted to look like: " + SchedulerApplication.INPUT_DATE_FORMAT.format(new Date()));
             }
+            try {
+                numPrimaryShifts = Integer.parseInt(primaryShiftsRow[i]);
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("The number of primary shifts in column " + (i + 1) + " for " + value + " is not a valid integer: " + primaryShiftsRow[i]);
+            }
+            try {
+                numBackupShifts = Integer.parseInt(backupShiftsRow[i]);
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("The number of backup shifts in column " + (i + 1) + " for " + value + " is not a valid integer: " + backupShiftsRow[i]);
+            }
+            
+            
+            ShiftDate shiftDate = new ShiftDate();
+            shiftDate.setDate(date);
+            shiftDate.setShiftNumber(shiftNumber);
+            
+            ++ shiftNumber;
+
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(date);
+            int curWeek = cal.get(Calendar.WEEK_OF_YEAR);
+            int curYear = cal.get(Calendar.YEAR);
+            if (curYear == previousYear && curWeek == previousWeek) {
+                shiftDate.setWeekNumber(weekNumber);
+            } else {
+                ++ weekNumber;
+                shiftDate.setWeekNumber(weekNumber);
+                previousWeek = curWeek;
+                previousYear = curYear;
+            }
+            for (int j = 1; j <= numPrimaryShifts; ++j) {
+                shiftIndex = addShift(shiftDate, j, false, shiftIndex);
+            }
+            for (int j = 1; j <= numBackupShifts; ++j) {
+                shiftIndex = addShift(shiftDate, j, true, shiftIndex);
+            }
+            allShifts.addAll(shiftDate.getShifts());
+            columnDates.put(i, shiftDate);
+            shiftDates.add(shiftDate);
         }
         schedule.setShiftDates(shiftDates);
+        schedule.setShifts(allShifts);
         return columnDates;
     }
     
     private void initShifts(Schedule schedule) {
-        int shiftIndex = 0;
-        List<Shift> allShifts = new ArrayList<Shift>();
-        for (ShiftDate shiftDate : schedule.getShiftDates()) {
-            shiftDate.setShifts(new ArrayList<Shift>());
-            shiftIndex = addShift(shiftDate, 1, false, shiftIndex);
-            shiftIndex = addShift(shiftDate, 2, false, shiftIndex);
-            shiftIndex = addShift(shiftDate, 3, true, shiftIndex);
-            allShifts.addAll(shiftDate.getShifts());
-        }
-        schedule.setShifts(allShifts);
-        
         List<ShiftAssignment> allShiftAssignments = new ArrayList<ShiftAssignment>();
-        for (Shift shift : allShifts) {
+        for (Shift shift : schedule.getShifts()) {
             ShiftAssignment assignment = new ShiftAssignment();
             assignment.setShift(shift);
             allShiftAssignments.add(assignment);
@@ -121,7 +148,7 @@ public class ScheduleLoader {
     }
     
     private void addEmployee(Schedule schedule, String[] employeeRow, int rowNumber, Map<Integer,ShiftDate> columnDates) {
-        if (employeeRow[0].toLowerCase().equals("total") || employeeRow[0].toLowerCase().equals("total:")) {
+        if (isTotal(employeeRow[0])) {
             return;
         }
         
@@ -150,7 +177,13 @@ public class ScheduleLoader {
         }
         employee.setAvailableDates(new ArrayList<ShiftDate>());
         employee.setAvailableIfNeededDates(new ArrayList<ShiftDate>());
-        for (int i = 4; i < employeeRow.length; ++i) {
+        int numberOfDates = schedule.getShiftDates().size();
+        int startingColumn = 4;
+        // The right-most column might be used to tally the total number of primary and backup
+        // shifts, causing there to be additional columns in each row beyond those that mark
+        // availability for each shift date
+        int maxColumn = startingColumn + numberOfDates - 1;
+        for (int i = startingColumn; i < employeeRow.length && i <= maxColumn ; ++i) {
             String availability = StringUtils.trim(employeeRow[i]).toLowerCase();
             ShiftDate shiftDate = columnDates.get(i);
             if ("yes".equals(availability)) {
@@ -200,6 +233,13 @@ public class ScheduleLoader {
                     + ") does not match the the total number of backup shifts to which employees should be assigned ("
                     + numberOfEmployeesForBackupShifts + ")");
         }
+    }
+    
+    private boolean isTotal(String value) {
+        String valToCheck = StringUtils.stripToEmpty(value).toLowerCase();
+        return (valToCheck.equals("total") 
+                || valToCheck.startsWith("total:") 
+                || valToCheck.startsWith("total "));
     }
     
 }

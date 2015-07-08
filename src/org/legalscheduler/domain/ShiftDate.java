@@ -1,6 +1,7 @@
 package org.legalscheduler.domain;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -10,7 +11,7 @@ public class ShiftDate implements Serializable {
     private Date date;
     private int shiftNumber;
     private int weekNumber;
-    private List<Shift> shifts;
+    private List<Shift> shifts = new ArrayList<Shift>();
     public Date getDate() {
         return date;
     }

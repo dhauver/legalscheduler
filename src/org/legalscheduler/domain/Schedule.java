@@ -75,4 +75,28 @@ public class Schedule implements Solution<HardSoftScore> {
         this.score = score;
     }
     
+    public int getMaxNumberOfPrimaryShifts() {
+        return getMaxNumberOfShifts(false);
+    }
+    
+    public int getMaxNumberOfBackupShifts() {
+        return getMaxNumberOfShifts(true);
+    }
+    
+    private int getMaxNumberOfShifts(boolean countBackups) {
+        int maxNumShifts = 0;
+        for (ShiftDate shiftDate: getShiftDates()) {
+            int numShifts = 0;
+            for (Shift shift : shiftDate.getShifts()) {
+                if (shift.isBackup() == countBackups) {
+                    ++numShifts;
+                }
+            }
+            if (numShifts > maxNumShifts) {
+                maxNumShifts = numShifts;
+            }
+        }
+        return maxNumShifts;
+    }
+    
 }
