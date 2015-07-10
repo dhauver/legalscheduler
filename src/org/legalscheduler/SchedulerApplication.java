@@ -101,6 +101,8 @@ public class SchedulerApplication extends JFrame implements ActionListener {
                 resultsPanel.removeAll();
                 
                 selectFileButton.setEnabled(false);
+                // This call seems to be necessary in order for the UI to
+                // refresh correctly if the same CSV is selected twice in a row.
                 paintAll(getGraphics());
                 
                 File outputFile = getOutputFile(file);
