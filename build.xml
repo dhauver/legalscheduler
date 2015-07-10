@@ -2,7 +2,7 @@
 
 	<property name="build.dir" location="build"/>
 	<property name="expanded.dir" location="${build.dir}/Attorney Scheduler"/>
-	<property name="versionNumber" value="0.9.1.0"/>
+	<property name="versionNumber" value="0.9.2.0"/>
 	<property name="version" value="${versionNumber} alpha"/>
 
 	<property name="launch4j.dir" location="launch4j" />
