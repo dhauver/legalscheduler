@@ -33,6 +33,7 @@ import javax.swing.filechooser.FileFilter;
 import javax.swing.text.DefaultCaret;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.legalscheduler.domain.Schedule;
 import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScore;
 import org.optaplanner.core.api.score.constraint.ConstraintMatch;
@@ -59,6 +60,10 @@ public class SchedulerApplication extends JFrame implements ActionListener {
     Icon warningIcon;
     Icon errorIcon;
     Icon okIcon;
+    
+    // These are useful for development, but less useful for end users.
+    boolean showScore = false;
+    boolean showStackTrace = false;
     
     public static void main(String[] args) {
         try {
@@ -159,6 +164,9 @@ public class SchedulerApplication extends JFrame implements ActionListener {
         if (score.getHardScore() < 0 || score.getSoftScore() < 0) {
             String label = (isValid) ? "Unfortunately, it's not perfect. Some preferences couldn't be met." 
                             : "Here are the problems.";
+            if (showScore) {
+                label += " Hard Score: " + score.getHardScore() + ", Soft Score: " + score.getSoftScore();
+            }
                 
             ScoreDirectorFactory scoreDirectorFactory = solver.getScoreDirectorFactory();
             ScoreDirector scoreDirector = scoreDirectorFactory.buildScoreDirector();
@@ -253,6 +261,16 @@ public class SchedulerApplication extends JFrame implements ActionListener {
         return problemsPanel;
     }
     
+    private String formatErrorMessage(Exception e) {
+        String msg = e.getMessage();
+        if (showStackTrace) {
+            msg += System.lineSeparator() 
+                    + "---- Stack Trace ----" + System.lineSeparator() 
+                    + ExceptionUtils.getStackTrace(e);
+        }
+        return msg;
+    }
+    
     private JLabel createLabel(String text) {
         JLabel label = new JLabel(text);
         label.setAlignmentX(JLabel.LEFT_ALIGNMENT);
@@ -334,12 +352,12 @@ public class SchedulerApplication extends JFrame implements ActionListener {
                 statusPanel.removeAll();
                 statusPanel.add(createStatusLabel("An interrupting error occurred", errorIcon));
                 resultsPanel.removeAll();
-                resultsPanel.add(createProblemsPanel("Error Message", e.getMessage()));
+                resultsPanel.add(createProblemsPanel("Error Message", formatErrorMessage(e)));
             } catch (ExecutionException e) {
                 statusPanel.removeAll();
                 statusPanel.add(createStatusLabel("An error occurred", errorIcon));
                 resultsPanel.removeAll();
-                resultsPanel.add(createProblemsPanel("Error Message", e.getMessage()));
+                resultsPanel.add(createProblemsPanel("Error Message", formatErrorMessage(e)));
             } finally {
                 selectFileButton.setEnabled(true);
                 validate();
