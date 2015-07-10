@@ -23,6 +23,7 @@ import org.legalscheduler.domain.ShiftDate;
 import au.com.bytecode.opencsv.CSVReader;
 
 public class ScheduleLoader {
+    
     public Schedule loadSchedule(File csvFile) {
         Schedule schedule = new Schedule();
         CSVReader csvReader = null;
@@ -36,13 +37,14 @@ public class ScheduleLoader {
             String[] headerRow = csvReader.readNext();
             String[] primaryShiftsRow = csvReader.readNext();
             String[] backupShiftsRow = csvReader.readNext();
-            Map<Integer, ShiftDate> columnDates = initShiftDates(schedule, headerRow, primaryShiftsRow, backupShiftsRow);
+            boolean weightColumnPresent = isWeightColumnPresent(headerRow);
+            Map<Integer, ShiftDate> columnDates = initShiftDates(schedule, headerRow, primaryShiftsRow, backupShiftsRow, weightColumnPresent);
             initShifts(schedule);
             schedule.setEmployees(new ArrayList<Employee>());
             int rowNumber = 4;
             String[] employeeRow = csvReader.readNext();
             while (employeeRow != null) {
-                addEmployee(schedule, employeeRow, rowNumber, columnDates);
+                addEmployee(schedule, employeeRow, rowNumber, columnDates, weightColumnPresent);
                 employeeRow = csvReader.readNext();
             }
             csvReader.close();
@@ -53,7 +55,9 @@ public class ScheduleLoader {
         return schedule;
     }
     
-    private Map<Integer, ShiftDate> initShiftDates(Schedule schedule, String[] headerRow, String[] primaryShiftsRow, String[] backupShiftsRow) {
+    private Map<Integer, ShiftDate> initShiftDates(Schedule schedule, 
+            String[] headerRow, String[] primaryShiftsRow,
+            String[] backupShiftsRow, boolean weightColumnPresent) {
         Map<Integer, ShiftDate> columnDates = new HashMap<Integer, ShiftDate>();
         List<ShiftDate> shiftDates = new ArrayList<ShiftDate>();
         int shiftNumber = 0;
@@ -62,7 +66,7 @@ public class ScheduleLoader {
         int previousYear = -1;
         List<Shift> allShifts = new ArrayList<Shift>();
         int shiftIndex = 0;
-        for (int i = 4; i < headerRow.length; ++i) {
+        for (int i = getFirstDateColumnIndex(weightColumnPresent); i < headerRow.length; ++i) {
             String value = headerRow[i];
             Date date = null;
             int numPrimaryShifts = 0;
@@ -147,14 +151,15 @@ public class ScheduleLoader {
         return (index + 1);
     }
     
-    private void addEmployee(Schedule schedule, String[] employeeRow, int rowNumber, Map<Integer,ShiftDate> columnDates) {
+    private void addEmployee(Schedule schedule, String[] employeeRow, 
+            int rowNumber, Map<Integer,ShiftDate> columnDates,
+            boolean weightColumnPresent) {
         if (isTotal(employeeRow[0])) {
             return;
         }
         
         Employee employee = new Employee();
         employee.setName(employeeRow[0]);
-        
         try {
             AttorneyType type = AttorneyType.valueOf(StringUtils.trim(employeeRow[1]));
             employee.setAttorneyType(type);
@@ -175,10 +180,18 @@ public class ScheduleLoader {
             throw new RuntimeException("The number of backup shifts could not be parsed on row " 
                     + rowNumber + ": " + employeeRow[3]);
         }
+        if (weightColumnPresent) {
+            try {
+                employee.setWeight(Integer.parseInt(StringUtils.trim(employeeRow[4])));
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("The employee weight could not be parsed on row " 
+                        + rowNumber + ": " + employeeRow[4]);
+            }
+        }
         employee.setAvailableDates(new ArrayList<ShiftDate>());
         employee.setAvailableIfNeededDates(new ArrayList<ShiftDate>());
         int numberOfDates = schedule.getShiftDates().size();
-        int startingColumn = 4;
+        int startingColumn = getFirstDateColumnIndex(weightColumnPresent);
         // The right-most column might be used to tally the total number of primary and backup
         // shifts, causing there to be additional columns in each row beyond those that mark
         // availability for each shift date
@@ -240,6 +253,15 @@ public class ScheduleLoader {
         return (valToCheck.equals("total") 
                 || valToCheck.startsWith("total:") 
                 || valToCheck.startsWith("total "));
+    }
+    
+    private boolean isWeightColumnPresent(String[] headerRow) {
+        return headerRow.length > 4 
+                && StringUtils.stripToEmpty(headerRow[4]).toLowerCase().startsWith("weight");
+    }
+    
+    private int getFirstDateColumnIndex(boolean weightColumnPresent) {
+        return weightColumnPresent ? 5 : 4;
     }
     
 }

@@ -12,6 +12,7 @@ public class Employee implements Serializable {
     private int numberOfBackupShifts;
     private List<ShiftDate> availableDates;
     private List<ShiftDate> availableIfNeededDates;
+    private int weight = 1;
     public String getName() {
         return name;
     }
@@ -48,4 +49,11 @@ public class Employee implements Serializable {
     public void setAvailableIfNeededDates(List<ShiftDate> availableIfNeededDates) {
         this.availableIfNeededDates = availableIfNeededDates;
     }
+    public int getWeight() {
+        return weight;
+    }
+    public void setWeight(int weight) {
+        this.weight = weight;
+    }
+    
 }

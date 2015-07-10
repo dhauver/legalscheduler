@@ -75,19 +75,19 @@ rule "Employee is assigned to two shifts in the same week"
         ShiftAssignment( employee != null, $employee : employee, $weekNumber : shift.shiftDate.weekNumber, $shiftNumber : shift.shiftDate.shiftNumber)
         ShiftAssignment( employee == $employee, shift.shiftDate.shiftNumber < ($shiftNumber - 1), shift.shiftDate.weekNumber == $weekNumber)
     then
-        scoreHolder.addSoftConstraintMatch(kcontext, -30);
+        scoreHolder.addSoftConstraintMatch(kcontext, -(30 * $employee.getWeight()));
 end
 
 rule "Employee is working a primary shift on a less preferred date"
     when
-        ShiftAssignment( $shiftDate : shift.shiftDate, shift.backup == false, employee != null, employee.availableIfNeededDates.contains($shiftDate) == true )
+        ShiftAssignment( $shiftDate : shift.shiftDate, shift.backup == false, employee != null, employee.availableIfNeededDates.contains($shiftDate) == true, $employee : employee)
     then
-        scoreHolder.addSoftConstraintMatch(kcontext, -10);
+        scoreHolder.addSoftConstraintMatch(kcontext, -(10 * $employee.getWeight()));
 end
 
 rule "Employee is working a backup shift on a less preferred date"
     when
-        ShiftAssignment( $shiftDate : shift.shiftDate, shift.backup == true, employee != null, employee.availableIfNeededDates.contains($shiftDate) == true )
+        ShiftAssignment( $shiftDate : shift.shiftDate, shift.backup == true, employee != null, employee.availableIfNeededDates.contains($shiftDate) == true, $employee : employee)
     then
-        scoreHolder.addSoftConstraintMatch(kcontext, -5);
+        scoreHolder.addSoftConstraintMatch(kcontext, -(5 * $employee.getWeight()));
 end
