@@ -101,6 +101,7 @@ public class SchedulerApplication extends JFrame implements ActionListener {
                 resultsPanel.removeAll();
                 
                 selectFileButton.setEnabled(false);
+                paintAll(getGraphics());
                 
                 File outputFile = getOutputFile(file);
                 SolveWorker worker = new SolveWorker(file, outputFile);
